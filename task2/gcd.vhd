@@ -93,13 +93,13 @@ begin
       when waiting_for_a => -- state 0
 
       when recieved_a => -- state 1
-        reg_a <= AB;
-        ack   <= '1';
+        next_reg_a <= AB;
+        ack        <= '1';
 
       when waiting_for_b => -- state 2
 
       when recieved_b => -- state 3
-        reg_b <= AB;
+        next_reg_b <= AB;
 
       when checking => -- state 4
 
@@ -126,7 +126,7 @@ begin
       state <= waiting_for_a;
       reg_a <= (others => '0');
       reg_b <= (others => '0');
-    elsif (clk = '1') then
+    elsif (rising_edge(clk)) then
       state <= next_state;
       reg_a <= next_reg_a;
       reg_b <= next_reg_b;
