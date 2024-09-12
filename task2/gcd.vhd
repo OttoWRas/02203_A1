@@ -104,7 +104,8 @@ begin
       when checking => -- state 4
 
       when done => -- state 5
-        C <= reg_a;
+        C   <= reg_a;
+        ack <= '1';
 
       when subtract_into_a => -- state 6
         next_reg_a <= reg_a - reg_b;
