@@ -32,6 +32,8 @@ architecture fsmd of gcd is
 
   signal reg_a, next_reg_a, next_reg_b, reg_b : unsigned(15 downto 0);
 
+  signal alu_input_1, alu_input_2, alu_result : unsigned(15 downto 0);
+
   signal state, next_state : state_type;
 begin
 
@@ -39,6 +41,12 @@ begin
 
   cl : process (req, ab, state, reg_a, reg_b, reset)
   begin
+    -- default assignments
+    ack        <= '0';
+    next_reg_a <= reg_a;
+    next_reg_b <= reg_b;
+    C          <= (others => 'Z');
+
     case (state) is
       when waiting_for_a => -- state 0 
         if (req = '1') then
@@ -48,7 +56,13 @@ begin
         end if;
 
       when recieved_a => -- state 1
-        next_state <= waiting_for_b;
+        if (req = '0') then
+          next_state <= waiting_for_b;
+        else
+          next_state <= recieved_a;
+        end if;
+        next_reg_a <= AB;
+        ack        <= '1';
 
       when waiting_for_b => -- state 2
         if (req = '1') then
@@ -59,6 +73,7 @@ begin
 
       when recieved_b => -- state 3
         next_state <= checking;
+        next_reg_b <= AB;
 
       when checking => -- state 4
         if (reg_a = reg_b) then
@@ -70,59 +85,31 @@ begin
         end if;
 
       when done => -- state 5
-        next_state <= waiting_for_a;
-
-      when subtract_into_a => -- state 6
-        next_state <= checking;
-
-      when subtract_into_b => -- state 7
-        next_state <= checking;
-
-      when others => -- catch all
-        next_state <= waiting_for_a;
-
-    end case;
-
-    -- default assignments
-    ack        <= '0';
-    next_reg_a <= reg_a;
-    next_reg_b <= reg_b;
-    C          <= (others => 'Z');
-
-    case (state) is
-      when waiting_for_a => -- state 0
-
-      when recieved_a => -- state 1
-        next_reg_a <= AB;
-        ack        <= '1';
-
-      when waiting_for_b => -- state 2
-
-      when recieved_b => -- state 3
-        next_reg_b <= AB;
-
-      when checking => -- state 4
-
-      when done => -- state 5
+        if (req = '0') then
+          next_state <= waiting_for_a;
+        else
+          next_state <= done;
+        end if;
         C   <= reg_a;
         ack <= '1';
 
       when subtract_into_a => -- state 6
+        next_state <= checking;
         next_reg_a <= reg_a - reg_b;
 
       when subtract_into_b => -- state 7
+        next_state <= checking;
         next_reg_b <= reg_b - reg_a;
 
       when others => -- catch all
-    end case;
+        next_state <= waiting_for_a;
 
+    end case;
   end process cl;
 
   -- Registers
-
   seq : process (clk, reset)
   begin
-
     if (reset = '1') then
       state <= waiting_for_a;
       reg_a <= (others => '0');
