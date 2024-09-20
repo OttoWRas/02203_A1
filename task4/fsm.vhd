@@ -1,49 +1,39 @@
--- -----------------------------------------------------------------------------
---
---  Title      :  FSMD implementation of GCD
---             :
---  Developers :  Jens Sparsø, Rasmus Bo Sørensen and Mathias Møller Bruhn
---           :
---  Purpose    :  This is a FSMD (finite state machine with datapath) 
---             :  implementation the GCD circuit
---             :
---  Revision   :  02203 fall 2019 v.5.0
---
--- -----------------------------------------------------------------------------
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity gcd is
+entity fsm is
   port
   (
     clk   : in std_logic; -- The clock signal.
     reset : in std_logic; -- Reset the module.
     req   : in std_logic; -- Input operand / start computation.
-    AB    : in unsigned(15 downto 0); -- The two operands.
-    ack   : out std_logic; -- Computation is complete.
-    C     : out unsigned(15 downto 0)); -- The result.
-end gcd;
+    N     : in std_logic; -- Negative flag.
+    Z     : in std_logic; -- Zero flag.
 
-architecture fsmd of gcd is
+    ack     : out std_logic; -- Computation is complete.
+    LDA     : out std_logic; -- Load A register.
+    LDB     : out std_logic; -- Load B register.
+    ABorALU : out std_logic; -- Select between AB and ALU output.
+    FN      : out std_logic_vector(1 downto 0) -- ALU function.
+  );
+end fsm;
 
+architecture fsm of fsm is
   type state_type is (waiting_for_a, recieved_a, waiting_for_b, recieved_b, checking, done, subtract_into_a, subtract_into_b);
-
-  signal reg_a, next_reg_a, next_reg_b, reg_b : unsigned(15 downto 0);
 
   signal state, next_state : state_type;
 begin
-
   -- Combinatoriel logic
 
-  cl : process (req, ab, state, reg_a, reg_b, reset)
+  cl : process (all)
   begin
     -- default assignments
-    ack        <= '0';
-    next_reg_a <= reg_a;
-    next_reg_b <= reg_b;
-    C          <= (others => 'Z');
+    ack     <= '0'; -- no ack
+    LDA     <= '0'; -- switch of new A
+    LDB     <= '0'; -- switch of new B
+    ABorALU <= '1'; -- default to AB
+    FN      <= (others => '0'); -- default to A-B
 
     case (state) is
       when waiting_for_a => -- state 0 
@@ -59,8 +49,8 @@ begin
         else
           next_state <= recieved_a;
         end if;
-        next_reg_a <= AB;
-        ack        <= '1';
+        LDA <= '1';
+        ack <= '1';
 
       when waiting_for_b => -- state 2
         if (req = '1') then
@@ -71,15 +61,15 @@ begin
 
       when recieved_b => -- state 3
         next_state <= checking;
-        next_reg_b <= AB;
+        LDB        <= '1';
 
       when checking => -- state 4
-        if (reg_a = reg_b) then
+        if (Z = '1') then -- if A-B = 0
           next_state <= done;
-        elsif (reg_a > reg_b) then
-          next_state <= subtract_into_a;
-        else
+        elsif (N = '1') then -- if A-B < 0
           next_state <= subtract_into_b;
+        else -- if A-B > 0
+          next_state <= subtract_into_a;
         end if;
 
       when done => -- state 5
@@ -88,16 +78,20 @@ begin
         else
           next_state <= done;
         end if;
-        C   <= reg_a;
-        ack <= '1';
+        FN      <= "10"; -- set ALU to output A
+        ABorALU <= '0'; -- switch to ALU output
+        ack     <= '1';
 
       when subtract_into_a => -- state 6
         next_state <= checking;
-        next_reg_a <= reg_a - reg_b;
+        LDA        <= '1'; -- write back A
+        ABorALU    <= '0'; -- switch to ALU output
 
       when subtract_into_b => -- state 7
         next_state <= checking;
-        next_reg_b <= reg_b - reg_a;
+        LDB        <= '1'; -- write back B
+        ABorALU    <= '0'; -- switch to ALU output
+        FN         <= "01"; -- set ALU to B-A
 
       when others => -- catch all
         next_state <= waiting_for_a;
@@ -110,13 +104,9 @@ begin
   begin
     if (reset = '1') then
       state <= waiting_for_a;
-      reg_a <= (others => '0');
-      reg_b <= (others => '0');
-    elsif (rising_edge(clk)) then
+      elsif (rising_edge(clk)) then
       state <= next_state;
-      reg_a <= next_reg_a;
-      reg_b <= next_reg_b;
     end if;
 
   end process seq;
-end fsmd;
+end fsm;
