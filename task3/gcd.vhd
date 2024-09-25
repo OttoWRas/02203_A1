@@ -23,33 +23,33 @@ architecture binary of gcd is
 
   signal alu_in_1, alu_in_2, alu_out : unsigned(15 downto 0);
 
-  signal reg_a_divided, reg_b_divided : unsigned(15 downto 0);
+  signal a_divided, b_divided : unsigned(15 downto 0);
 
-  signal reg_a_odd, reg_b_odd, reg_a_equal_b, reg_a_less_b : std_logic;
-  signal state, next_state                                 : state_type;
+  signal a_odd, b_odd, a_equals_b, a_less_than_b : std_logic;
+  signal state, next_state                       : state_type;
 
   constant zero      : unsigned(15 downto 0) := (others => '0');
   constant minus_one : unsigned(15 downto 0) := (others => '1');
 begin
-  reg_a_odd     <= reg_a(0);
-  reg_b_odd     <= reg_b(0);
-  alu_out       <= alu_in_1 - alu_in_2;
-  reg_a_equal_b <= '1' when alu_out = zero else
+  a_odd      <= reg_a(0);
+  b_odd      <= reg_b(0);
+  alu_out    <= alu_in_1 - alu_in_2;
+  a_equals_b <= '1' when alu_out = zero else
     '0';
-  reg_a_less_b <= alu_out(15);
+  a_less_than_b <= alu_out(15);
 
   cl : process (all)
   begin
     -- default assignments
-    ack           <= '0';
-    next_reg_a    <= reg_a;
-    next_reg_b    <= reg_b;
-    next_reg_d    <= reg_d;
-    alu_in_1      <= reg_a;
-    alu_in_2      <= reg_b;
-    reg_a_divided <= reg_a srl 1;
-    reg_b_divided <= reg_b srl 1;
-    C             <= (others => 'Z');
+    ack        <= '0';
+    next_reg_a <= reg_a;
+    next_reg_b <= reg_b;
+    next_reg_d <= reg_d;
+    alu_in_1   <= reg_a;
+    alu_in_2   <= reg_b;
+    a_divided  <= reg_a srl 1;
+    b_divided  <= reg_b srl 1;
+    C          <= (others => 'Z');
 
     case (state) is
       when waiting_for_a =>
@@ -81,16 +81,16 @@ begin
         next_reg_b <= AB;
 
       when checking =>
-        if (reg_a_odd = '0' and reg_b_odd = '0') then -- both are even
+        if (a_odd = '0' and b_odd = '0') then -- both are even
           next_state <= divide_both; -- divide both by 2, increment d
-        elsif (reg_a_odd = '0' and reg_b_odd = '1') then -- a is even, b is odd
+        elsif (a_odd = '0' and b_odd = '1') then -- a is even, b is odd
           next_state <= divide_a; -- divide a by 2
-        elsif (reg_a_odd = '1' and reg_b_odd = '0') then -- a is odd, b is even
+        elsif (a_odd = '1' and b_odd = '0') then -- a is odd, b is even
           next_state <= divide_b; -- divide b by 2
         else -- both are odd
-          if (reg_a_equal_b = '1') then
+          if (a_equals_b = '1') then
             next_state <= done;
-          elsif (reg_a_less_b = '1') then
+          elsif (a_less_than_b = '1') then
             next_state <= subtract_into_b;
           else -- reg_a > reg_b
             next_state <= subtract_into_a;
@@ -108,19 +108,19 @@ begin
 
       when divide_both =>
         next_state <= checking;
-        next_reg_a <= reg_a_divided;
-        next_reg_b <= reg_b_divided;
+        next_reg_a <= a_divided;
+        next_reg_b <= b_divided;
         alu_in_1   <= reg_d;
         alu_in_2   <= minus_one;
         next_reg_d <= alu_out;
 
       when divide_a =>
         next_state <= checking;
-        next_reg_a <= reg_a_divided;
+        next_reg_a <= a_divided;
 
       when divide_b =>
         next_state <= checking;
-        next_reg_b <= reg_b_divided;
+        next_reg_b <= b_divided;
 
       when subtract_into_a =>
         next_state <= checking;
