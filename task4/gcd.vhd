@@ -17,8 +17,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity gcd is
-  port
-  (
+  port (
     clk   : in std_logic; -- The clock signal.
     reset : in std_logic; -- Reset the module.
     req   : in std_logic; -- Input operand / start computation.
@@ -49,23 +48,21 @@ begin
     );
 
   dp : entity work.datapath
-    generic
-    map (
-    bitwidth => 16
+    generic map(
+      bitwidth => 16
     )
-    port
-    map
+    port map
     (
-    clk     => clk,
-    reset   => reset,
-    AB      => AB,
-    ABorALU => ABorALU,
-    LDA     => LDA,
-    LDB     => LDB,
-    FN      => FN,
-    C       => C,
-    N       => N,
-    Z       => Z
+      clk     => clk,
+      reset   => reset,
+      AB      => AB,
+      ABorALU => ABorALU,
+      LDA     => LDA,
+      LDB     => LDB,
+      FN      => FN,
+      C       => C,
+      N       => N,
+      Z       => Z
     );
 
 end comp_fsmd;
