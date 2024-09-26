@@ -3,14 +3,12 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity datapath is
-  generic
-  (
+  generic (
     bitwidth : natural := 16
   );
-  port
-  (
+  port (
     clk   : in std_logic; -- The clock signal.
-    reset : in std_logic; -- Reset the module.
+    reset : in std_logic; -- Reset the module, NOTE: the registers are implemented without reset so this is unused.
     AB    : in unsigned(15 downto 0); -- The two operands.
 
     ABorALU : in std_logic; -- Select between AB and ALU output.
@@ -29,12 +27,10 @@ architecture comb of datapath is
   signal c_int, reg_a_out, reg_b_out, Y : unsigned(15 downto 0);
 
   component reg is
-    generic
-    (
+    generic (
       N : natural := 16
     );
-    port
-    (
+    port (
       clk      : in std_logic;
       en       : in std_logic;
       data_in  : in unsigned(15 downto 0);
@@ -43,12 +39,10 @@ architecture comb of datapath is
   end component;
 
   component alu is
-    generic
-    (
+    generic (
       W : natural := 16
     );
-    port
-    (
+    port (
       A  : in unsigned(15 downto 0);
       B  : in unsigned(15 downto 0);
       FN : in std_logic_vector(1 downto 0);
@@ -59,12 +53,10 @@ architecture comb of datapath is
   end component;
 
   component mux is
-    generic
-    (
+    generic (
       N : natural := 16
     );
-    port
-    (
+    port (
       data_in1 : in unsigned(15 downto 0);
       data_in2 : in unsigned(15 downto 0);
       s        : in std_logic;
@@ -73,12 +65,10 @@ architecture comb of datapath is
   end component;
 
   component buf is
-    generic
-    (
+    generic (
       N : natural := 16
     );
-    port
-    (
+    port (
       data_in  : in unsigned(15 downto 0);
       data_out : out unsigned(15 downto 0)
     );
@@ -87,8 +77,7 @@ architecture comb of datapath is
 begin
 
   reg_a : reg
-  generic
-  map (N => bitwidth)
+  generic map(N => bitwidth)
   port map
   (
     clk      => clk,
@@ -98,51 +87,43 @@ begin
   );
 
   reg_b : reg
-  generic
-  map (N => bitwidth)
-  port
-  map
+  generic map(N => bitwidth)
+  port map
   (
-  clk      => clk,
-  en       => LDB,
-  data_in  => C_int,
-  data_out => reg_b_out
+    clk      => clk,
+    en       => LDB,
+    data_in  => C_int,
+    data_out => reg_b_out
   );
 
   alu_main : alu
-  generic
-  map (W => bitwidth)
-  port
-  map
+  generic map(W => bitwidth)
+  port map
   (
-  A  => reg_a_out,
-  B  => reg_b_out,
-  fn => FN,
-  C  => Y,
-  Z  => Z,
-  N  => N
+    A  => reg_a_out,
+    B  => reg_b_out,
+    fn => FN,
+    C  => Y,
+    Z  => Z,
+    N  => N
   );
 
   mux_AB_Y : mux
-  generic
-  map (N => bitwidth)
-  port
-  map
+  generic map(N => bitwidth)
+  port map
   (
-  data_in1 => Y,
-  data_in2 => AB,
-  s        => ABorALU,
-  data_out => C_int
+    data_in1 => Y,
+    data_in2 => AB,
+    s        => ABorALU,
+    data_out => C_int
   );
 
   output_buffer : buf
-  generic
-  map (N => bitwidth)
-  port
-  map
+  generic map(N => bitwidth)
+  port map
   (
-  data_in  => C_int,
-  data_out => C
+    data_in  => C_int,
+    data_out => C
   );
 
 end comb;

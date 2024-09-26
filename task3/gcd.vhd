@@ -47,8 +47,8 @@ begin
     next_reg_d <= reg_d;
     alu_in_1   <= reg_a;
     alu_in_2   <= reg_b;
-    a_divided  <= reg_a srl 1;
-    b_divided  <= reg_b srl 1;
+    a_divided  <= '0' & reg_a(15 downto 1);
+    b_divided  <= '0' & reg_b(15 downto 1);
     C          <= (others => 'Z');
 
     case (state) is
